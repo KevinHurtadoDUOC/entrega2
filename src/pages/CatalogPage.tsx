@@ -3,22 +3,26 @@ import { ProductGrid } from '../components/ProductGrid';
 
 type CatalogPageProps = {
   categoryFilter: string;
-  priceFilter: string;
+  priceMin: string;
+  priceMax: string;
   categoryOptions: string[];
   filteredProducts: Product[];
   onCategoryChange: (value: string) => void;
-  onPriceChange: (value: string) => void;
+  onPriceMinChange: (value: string) => void;
+  onPriceMaxChange: (value: string) => void;
   onNavigate: (path: string) => void;
   onAddToCart: (id: string) => void;
 };
 
 export function CatalogPage({
   categoryFilter,
-  priceFilter,
+  priceMin,
+  priceMax,
   categoryOptions,
   filteredProducts,
   onCategoryChange,
-  onPriceChange,
+  onPriceMinChange,
+  onPriceMaxChange,
   onNavigate,
   onAddToCart,
 }: CatalogPageProps) {
@@ -32,7 +36,7 @@ export function CatalogPage({
       </section>
 
       <section className="catalog-filters">
-        <div className="container filters-wrap">
+        <div className="container filters-wrap filters-three">
           <div className="filter-card">
             <label htmlFor="category-filter">Categoría</label>
             <select id="category-filter" value={categoryFilter} onChange={(event) => onCategoryChange(event.target.value)}>
@@ -44,21 +48,40 @@ export function CatalogPage({
           </div>
 
           <div className="filter-card">
-            <label htmlFor="price-filter">Precio</label>
-            <select id="price-filter" value={priceFilter} onChange={(event) => onPriceChange(event.target.value)}>
-              <option value="all">Todos</option>
-              <option value="0-10000">Hasta $10.000</option>
-              <option value="10001-20000">$10.001 - $20.000</option>
-              <option value="20001-30000">$20.001 - $30.000</option>
-              <option value="30001-999999">Más de $30.000</option>
-            </select>
+            <label htmlFor="price-min">Precio mínimo</label>
+            <input
+              id="price-min"
+              type="number"
+              min="0"
+              placeholder="Ej: 3000"
+              value={priceMin}
+              onChange={(event) => onPriceMinChange(event.target.value)}
+            />
+          </div>
+
+          <div className="filter-card">
+            <label htmlFor="price-max">Precio máximo</label>
+            <input
+              id="price-max"
+              type="number"
+              min="0"
+              placeholder="Ej: 50000"
+              value={priceMax}
+              onChange={(event) => onPriceMaxChange(event.target.value)}
+            />
           </div>
         </div>
       </section>
 
       <section className="catalog-section">
         <div className="container">
-          <ProductGrid products={filteredProducts} onAddToCart={onAddToCart} onOpenProduct={(id) => onNavigate(`/product/${id}`)} />
+          {filteredProducts.length === 0 ? (
+            <div className="empty-cart">
+              <p>No se encontraron productos en este rango de precio.</p>
+            </div>
+          ) : (
+            <ProductGrid products={filteredProducts} onAddToCart={onAddToCart} onOpenProduct={(id) => onNavigate(`/product/${id}`)} />
+          )}
         </div>
       </section>
     </>

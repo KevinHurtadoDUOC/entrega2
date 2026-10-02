@@ -32,12 +32,21 @@ export type Notice = {
   type: NoticeType;
 };
 
+export type OrderItem = {
+  productId: string;
+  nombre: string;
+  cantidad: number;
+  precioUnitario: number;
+};
+
 export type Order = {
   id: string;
   cliente: string;
+  clienteNombre: string;
   direccion: string;
   estado: OrderStatus;
   repartidor?: string;
+  items: OrderItem[];
   total: number;
   fecha: string;
 };

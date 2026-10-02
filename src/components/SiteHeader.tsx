@@ -35,7 +35,19 @@ export function SiteHeader({ cartCount, currentUser, onNavigate, onLogout }: Sit
 
           {currentUser ? (
             <>
-              <div className="user-badge">Hola, {currentUser.nombre}</div>
+              {currentUser.role === 'admin' && (
+                <button type="button" className="btn btn-light" onClick={() => onNavigate('/admin')}>Panel Admin</button>
+              )}
+              {currentUser.role === 'operador' && (
+                <button type="button" className="btn btn-light" onClick={() => onNavigate('/operador')}>Panel Operador</button>
+              )}
+              {currentUser.role === 'repartidor' && (
+                <button type="button" className="btn btn-light" onClick={() => onNavigate('/repartidor')}>Mis Entregas</button>
+              )}
+              {currentUser.role === 'cliente' && (
+                <button type="button" className="btn btn-light" onClick={() => onNavigate('/cliente')}>Mi Cuenta</button>
+              )}
+              <div className="user-badge">Hola, {currentUser.nombre} ({currentUser.role})</div>
               <button type="button" className="btn btn-light logout-btn" onClick={onLogout}>Cerrar sesión</button>
             </>
           ) : (

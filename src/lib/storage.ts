@@ -1,11 +1,13 @@
 import { SEED_PRODUCTS } from '../data/products';
-import type { CartItem, Product, User } from '../types';
+import { SEED_USERS } from '../data/users';
+import type { CartItem, Order, Product, User } from '../types';
 
 export const STORAGE_KEYS = {
   products: 'ev_products',
   cart: 'ev_cart',
   users: 'ev_users',
   currentUser: 'ev_currentUser',
+  orders: 'ev_orders',
 } as const;
 
 function safeParse<T>(value: string | null): T | null {
@@ -40,6 +42,30 @@ export function ensureSeedProducts() {
   }
 }
 
+export function ensureSeedUsers() {
+  const existing = safeParse<Array<Record<string, string | boolean | undefined>>>(localStorage.getItem(STORAGE_KEYS.users));
+
+  if (!existing || existing.length === 0) {
+    localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(SEED_USERS));
+    return;
+  }
+
+  let hasChanges = false;
+  const merged = [...existing];
+
+  for (const seed of SEED_USERS) {
+    const exists = merged.some((u) => String(u.email ?? '').toLowerCase() === seed.email.toLowerCase());
+    if (!exists) {
+      merged.push(seed);
+      hasChanges = true;
+    }
+  }
+
+  if (hasChanges) {
+    localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(merged));
+  }
+}
+
 export function getProducts(): Product[] {
   ensureSeedProducts();
   return safeParse<Product[]>(localStorage.getItem(STORAGE_KEYS.products)) ?? [];
@@ -58,6 +84,7 @@ export function saveCart(cart: CartItem[]) {
 }
 
 export function getUsers(): Array<Record<string, string | boolean | undefined>> {
+  ensureSeedUsers();
   return safeParse<Array<Record<string, string | boolean | undefined>>>(localStorage.getItem(STORAGE_KEYS.users)) ?? [];
 }
 
@@ -71,10 +98,12 @@ export function getCurrentUser(): User | null {
 
 export function setCurrentUser(user: User) {
   localStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(user));
+  window.dispatchEvent(new Event('ev_auth_change'));
 }
 
 export function removeCurrentUser() {
   localStorage.removeItem(STORAGE_KEYS.currentUser);
+  window.dispatchEvent(new Event('ev_auth_change'));
 }
 
 export function getProductById(productId: string | null): Product | undefined {
@@ -95,4 +124,29 @@ export function getCartCount() {
 
 export function queueNotice(message: string, type: 'success' | 'error' | 'info' = 'info') {
   sessionStorage.setItem('ev_notice', JSON.stringify({ message, type }));
+}
+
+// --- Orders ---
+
+export function getOrders(): Order[] {
+  return safeParse<Order[]>(localStorage.getItem(STORAGE_KEYS.orders)) ?? [];
+}
+
+export function saveOrders(orders: Order[]) {
+  localStorage.setItem(STORAGE_KEYS.orders, JSON.stringify(orders));
+}
+
+export function addOrder(order: Order) {
+  const orders = getOrders();
+  orders.push(order);
+  saveOrders(orders);
+}
+
+export function updateOrderStatus(orderId: string, estado: Order['estado'], repartidor?: string) {
+  const orders = getOrders();
+  const order = orders.find((o) => o.id === orderId);
+  if (!order) return;
+  order.estado = estado;
+  if (repartidor !== undefined) order.repartidor = repartidor;
+  saveOrders(orders);
 }

@@ -1,4 +1,5 @@
-import { getCart, getCurrentUser, getProductById, getProducts, getCartCount, queueNotice, saveCart, saveProducts } from './storage';
+import { addOrder, getCart, getCurrentUser, getProductById, getProducts, getCartCount, getUsers, queueNotice, saveCart, saveProducts } from './storage';
+import type { Order, OrderItem } from '../types';
 
 export function addToCart(productId: string, quantity = 1) {
   const products = getProducts();
@@ -65,21 +66,22 @@ export function clearCartItems() {
   saveCart([]);
 }
 
-export function checkoutCart() {
+export function checkoutCart(): boolean {
   const cart = getCart();
   const products = getProducts();
   const currentUser = getCurrentUser();
 
   if (!cart.length) {
     queueNotice('Tu carrito está vacío.', 'error');
-    return;
+    return false;
   }
 
   if (!currentUser) {
     queueNotice('Debes iniciar sesión para finalizar tu compra.', 'error');
-    window.location.hash = '#/login';
-    return;
+    return false;
   }
+
+  const orderItems: OrderItem[] = [];
 
   for (const item of cart) {
     const product = products.find((entry) => entry.id === item.id);
@@ -88,16 +90,41 @@ export function checkoutCart() {
     const remainingStock = product.stock - item.cantidad;
     if (remainingStock < 0) {
       queueNotice(`No hay stock suficiente para ${product.nombre}.`, 'error');
-      return;
+      return false;
     }
 
     product.stock = remainingStock;
+    orderItems.push({
+      productId: product.id,
+      nombre: product.nombre,
+      cantidad: item.cantidad,
+      precioUnitario: product.precioOferta,
+    });
   }
+
+  const subtotal = orderItems.reduce((sum, i) => sum + i.precioUnitario * i.cantidad, 0);
+  const shipping = 2500;
+
+  const users = getUsers();
+  const storedUser = users.find((u) => String(u.email ?? '').toLowerCase() === currentUser.email.toLowerCase());
+  const direccion = String(storedUser?.direccion ?? 'Sin dirección');
+
+  const order: Order = {
+    id: `ORD-${Date.now()}`,
+    cliente: currentUser.email,
+    clienteNombre: `${currentUser.nombre} ${currentUser.apellido}`,
+    direccion,
+    estado: 'pendiente',
+    items: orderItems,
+    total: subtotal + shipping,
+    fecha: new Date().toISOString(),
+  };
 
   saveProducts(products);
   saveCart([]);
-  queueNotice('Compra finalizada con éxito.', 'success');
-  window.location.hash = '#/';
+  addOrder(order);
+  queueNotice('Compra finalizada con éxito. Tu pedido está pendiente.', 'success');
+  return true;
 }
 
 export function getCartSnapshot() {
