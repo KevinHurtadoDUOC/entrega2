@@ -1,22 +1,30 @@
-import { useState } from 'react';
-import { getOrders, saveOrders, getCurrentUser, formatCurrency } from '../lib/storage';
-import type { OrderStatus } from '../types';
+import { useState, useMemo } from 'react';
+import type { OrderStatus, User } from '../types';
+import { getOrders, saveOrders, getCurrentUser } from '../lib/storage';
+import { SectionHeader } from '../components/atoms/SectionHeader';
+import { StatBox } from '../components/atoms/StatBox';
+import { OrderCard } from '../components/molecules/OrderCard';
 
-export function RepartidorDashboard() {
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = () => setRefreshKey((k) => k + 1);
+export interface RepartidorDashboardProps {
+  currentUser?: User | null;
+  onRefresh?: () => void;
+}
 
-  const currentUser = getCurrentUser();
-  const allOrders = getOrders();
+export function RepartidorDashboard({ currentUser: propUser, onRefresh }: RepartidorDashboardProps) {
+  const [allOrders, setAllOrders] = useState(() => getOrders());
+  const refresh = () => {
+    setAllOrders(getOrders());
+    if (onRefresh) onRefresh();
+  };
 
-  // Solo ver pedidos asignados a este repartidor
-  const myOrders = allOrders.filter((o) => o.repartidor === currentUser?.email);
+  const currentUser = propUser ?? getCurrentUser();
 
-  // Void the lint warning for refreshKey
-  void refreshKey;
+  // Solo pedidos asignados a este repartidor
+  const myOrders = useMemo(() => {
+    return allOrders.filter((o) => o.repartidor === currentUser?.email);
+  }, [allOrders, currentUser?.email]);
 
   const handleStatusChange = (orderId: string, nuevoEstado: OrderStatus) => {
-    // Repartidor solo puede cambiar a 'en camino' o 'entregado'
     if (nuevoEstado !== 'en camino' && nuevoEstado !== 'entregado') return;
 
     const all = getOrders();
@@ -32,89 +40,82 @@ export function RepartidorDashboard() {
   const entregados = myOrders.filter((o) => o.estado === 'entregado');
 
   return (
-    <section className="dashboard-section">
+    <div className="py-5 bg-light min-vh-100">
       <div className="container">
-        <span className="eyebrow accent">Reparto</span>
-        <h1>Mis Entregas</h1>
-        <p className="dashboard-subtitle">Solo puedes ver los pedidos asignados a ti. Actualiza el estado cuando corresponda.</p>
+        <SectionHeader
+          eyebrow="Ruta y Despacho"
+          title="Mis Entregas Asignadas"
+          subtitle={`Repartidor: ${currentUser?.nombre ?? 'Conductor'}. Revisa tus pedidos y actualiza el estado conforme avanzas en tu ruta.`}
+        />
 
-        <div className="panel-header">
-          <h2>Pedidos Activos ({pendientes.length})</h2>
+        <div className="row g-3 mb-4">
+          <div className="col-12 col-sm-6">
+            <StatBox
+              label="Por Entregar"
+              value={pendientes.length}
+              variant="warning"
+              icon="bi bi-box-seam"
+              subtext="En ruta o asignados"
+            />
+          </div>
+          <div className="col-12 col-sm-6">
+            <StatBox
+              label="Entregados Hoy"
+              value={entregados.length}
+              variant="success"
+              icon="bi bi-check2-circle"
+              subtext="Entregas completadas"
+            />
+          </div>
         </div>
 
-        {pendientes.length === 0 ? (
-          <div className="empty-cart"><p>No tienes pedidos activos asignados.</p></div>
-        ) : (
-          <div className="orders-list">
-            {pendientes.map((order) => (
-              <div key={order.id} className="order-card">
-                <div className="order-card-header">
-                  <div>
-                    <span className="mono order-id">{order.id}</span>
-                    <span className={`status-badge status-${order.estado.replace(' ', '-')}`}>{order.estado}</span>
-                  </div>
-                  <span className="order-total">{formatCurrency(order.total)}</span>
-                </div>
-                <div className="order-card-body">
-                  <div className="order-info-row"><strong>Cliente:</strong> {order.clienteNombre}</div>
-                  <div className="order-info-row"><strong>Dirección:</strong> {order.direccion}</div>
-                  <div className="order-info-row"><strong>Fecha:</strong> {new Date(order.fecha).toLocaleString('es-CL')}</div>
-                  <div className="order-items-mini">
-                    <strong>Productos:</strong>
-                    <ul>
-                      {order.items.map((item, idx) => (
-                        <li key={idx}>{item.nombre} x{item.cantidad}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <div className="order-card-actions">
-                  <div className="action-group">
-                    <label className="action-label">Actualizar estado:</label>
-                    <div className="repartidor-btns">
-                      {order.estado !== 'en camino' && (
-                        <button type="button" className="btn btn-primary btn-sm" onClick={() => handleStatusChange(order.id, 'en camino')}>
-                          📦 Marcar En Camino
-                        </button>
-                      )}
-                      {(order.estado === 'en camino' || order.estado === 'asignado') && (
-                        <button type="button" className="btn btn-sm btn-success" onClick={() => handleStatusChange(order.id, 'entregado')}>
-                          ✓ Marcar Entregado
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Active deliveries */}
+        <div className="mb-5">
+          <h4 className="fw-bold mb-3 text-dark pb-2 border-bottom">
+            <i className="bi bi-truck me-2 text-primary" />
+            Pedidos Activos ({pendientes.length})
+          </h4>
 
-        {entregados.length > 0 && (
-          <>
-            <div className="panel-header" style={{ marginTop: '2rem' }}>
-              <h2>Entregas Completadas ({entregados.length})</h2>
+          {pendientes.length === 0 ? (
+            <div className="card shadow-sm border-0 text-center py-4">
+              <div className="card-body">
+                <i className="bi bi-check-all fs-1 text-success d-block mb-2" />
+                <p className="text-muted mb-0">No tienes pedidos pendientes de entrega asignados en este momento.</p>
+              </div>
             </div>
-            <div className="orders-list">
-              {entregados.map((order) => (
-                <div key={order.id} className="order-card order-card-done">
-                  <div className="order-card-header">
-                    <div>
-                      <span className="mono order-id">{order.id}</span>
-                      <span className="status-badge status-entregado">entregado</span>
-                    </div>
-                    <span className="order-total">{formatCurrency(order.total)}</span>
-                  </div>
-                  <div className="order-card-body">
-                    <div className="order-info-row"><strong>Cliente:</strong> {order.clienteNombre}</div>
-                    <div className="order-info-row"><strong>Dirección:</strong> {order.direccion}</div>
-                  </div>
+          ) : (
+            <div className="row g-3">
+              {pendientes.map((order) => (
+                <div className="col-12" key={order.id}>
+                  <OrderCard
+                    order={order}
+                    role="repartidor"
+                    onUpdateStatus={handleStatusChange}
+                  />
                 </div>
               ))}
             </div>
-          </>
+          )}
+        </div>
+
+        {/* Completed deliveries */}
+        {entregados.length > 0 && (
+          <div>
+            <h4 className="fw-bold mb-3 text-dark pb-2 border-bottom">
+              <i className="bi bi-check2-all me-2 text-success" />
+              Entregas Completadas ({entregados.length})
+            </h4>
+
+            <div className="row g-3">
+              {entregados.map((order) => (
+                <div className="col-12" key={order.id}>
+                  <OrderCard order={order} role="cliente" />
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

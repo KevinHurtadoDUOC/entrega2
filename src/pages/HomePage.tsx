@@ -1,128 +1,159 @@
-import type { NavigateFunction } from 'react-router-dom';
 import type { Notice, Product } from '../types';
-import { ProductGrid } from '../components/ProductGrid';
-import { formatCurrency } from '../lib/storage';
+import { HeroSection } from '../components/organisms/HeroSection';
+import { ProductGrid } from '../components/organisms/ProductGrid';
+import { ContactForm } from '../components/molecules/ContactForm';
+import { SectionHeader } from '../components/atoms/SectionHeader';
+import { StatBox } from '../components/atoms/StatBox';
 
-type HomePageProps = {
+export interface HomePageProps {
   products: Product[];
-  onNavigate: NavigateFunction;
+  onNavigate: (path: string) => void;
   onAddToCart: (productId: string) => void;
   onSetNotice: (notice: Notice) => void;
-};
+}
 
 export function HomePage({ products, onNavigate, onAddToCart, onSetNotice }: HomePageProps) {
-  const goToSection = (target: '/about' | '/contact') => {
-    onNavigate(target);
-    requestAnimationFrame(() => {
-      const section = document.getElementById(target.slice(1));
-      if (section) {
-        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+  const goToSection = (targetId: 'about' | 'contact') => {
+    const el = document.getElementById(targetId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleContactSubmit = () => {
+    onSetNotice({
+      message: '¡Gracias por contactarnos! Tu consulta ha sido enviada con éxito.',
+      type: 'success',
     });
   };
 
+  const featuredProducts = products.slice(0, 3);
+
   return (
-    <>
-      <section className="hero">
-        <div className="container hero-grid">
-          <div className="hero-copy">
-            <span className="eyebrow">Calidez y seguridad en cada hogar</span>
-            <h1>Gas para tu casa, negocio y proyectos.</h1>
-            <p>
-              En Distribuidora de Gas El Volcán entregamos cilindros, reguladores,
-              mangueras y kits de instalación con atención rápida y precios competitivos.
-            </p>
-            <div className="hero-actions">
-              <button type="button" className="btn btn-primary" onClick={() => onNavigate('/catalog')}>Ver catálogo</button>
-              <button type="button" className="btn btn-secondary" onClick={() => goToSection('/contact')}>Solicitar asesoría</button>
-            </div>
-            <ul className="hero-features">
-              <li>Entrega inmediata</li>
-              <li>Productos certificados</li>
-              <li>Soporte experto</li>
-            </ul>
-          </div>
+    <div>
+      {/* Hero Section Organism */}
+      <HeroSection
+        onExploreCatalog={() => onNavigate('/catalog')}
+        onRequestContact={() => goToSection('contact')}
+      />
 
-          <div className="hero-visual">
-            <div className="visual-card visual-card-large">
-              <span className="card-badge">Oferta</span>
-              <h3>Cilindro 15 kg</h3>
-              <p>Ideal para hogares con mayor consumo.</p>
-              <strong>{formatCurrency(14500)}</strong>
-            </div>
-            <div className="visual-card visual-card-small">
-              <h4>Regulador dual</h4>
-              <span>Disponible hoy</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="featured-section">
+      {/* Featured Products Section */}
+      <section className="py-5 bg-white">
         <div className="container">
-          <div className="section-header">
-            <div>
-              <span className="eyebrow accent">Productos destacados</span>
-              <h2>Lo más vendido de El Volcán</h2>
+          <SectionHeader
+            eyebrow="Productos destacados"
+            title="Lo más vendido de El Volcán"
+            subtitle="Cilindros de gas y reguladores con disponibilidad de entrega inmediata."
+            action={{
+              label: 'Ver catálogo completo',
+              onClick: () => onNavigate('/catalog'),
+              icon: 'bi bi-arrow-right',
+            }}
+          />
+
+          <ProductGrid
+            products={featuredProducts}
+            onAddToCart={onAddToCart}
+            onOpenProduct={(id) => onNavigate(`/product/${id}`)}
+          />
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="py-5 bg-light border-top border-bottom">
+        <div className="container">
+          <div className="row g-4 align-items-center mb-4">
+            <div className="col-12 col-lg-6">
+              <span className="badge bg-warning-subtle text-warning-emphasis text-uppercase px-3 py-1.5 mb-2 fw-semibold">
+                Quiénes somos
+              </span>
+              <h2 className="display-6 fw-bold text-dark mb-3">
+                Una empresa local comprometida con la seguridad y la puntualidad.
+              </h2>
+              <p className="text-muted lead fs-6 mb-3">
+                Distribuidora de Gas El Volcán nace con la misión de entregar soluciones
+                confiables para hogares, restaurantes y pequeños negocios.
+              </p>
+              <p className="text-muted fs-6">
+                Nuestro equipo combina experiencia técnica con un servicio cercano, asegurando
+                que cada cliente reciba la mejor asesoría en el uso seguro del gas licuado.
+              </p>
             </div>
-            <button type="button" className="text-link" onClick={() => onNavigate('/catalog')}>Ver todo</button>
-          </div>
-          <ProductGrid products={products.slice(0, 3)} onAddToCart={onAddToCart} onOpenProduct={(id) => onNavigate(`/product/${id}`)} />
-        </div>
-      </section>
 
-      <section id="about" className="about-section">
-        <div className="container about-grid">
-          <div className="about-copy">
-            <span className="eyebrow accent">Quiénes somos</span>
-            <h2>Una empresa local comprometida con la seguridad.</h2>
-            <p>Distribuidora de Gas El Volcán nace con la misión de entregar soluciones confiables para hogares, restaurantes y pequeños negocios.</p>
-            <p>Nuestro equipo combina experiencia técnica con un servicio cercano, para asegurar que cada cliente reciba la mejor recomendación según sus necesidades.</p>
-          </div>
-          <div className="about-stats">
-            <div className="stat-box"><strong>+10 años</strong><span>de experiencia</span></div>
-            <div className="stat-box"><strong>2.500+</strong><span>clientes atendidos</span></div>
-            <div className="stat-box"><strong>24/7</strong><span>atención por contacto</span></div>
-          </div>
-        </div>
-      </section>
-
-      <section id="contact" className="contact-section">
-        <div className="container contact-grid">
-          <div className="contact-form-wrap">
-            <span className="eyebrow accent">Contáctanos</span>
-            <h2>Déjanos tu consulta</h2>
-            <form
-              className="contact-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                onSetNotice({ message: 'Gracias por contactarnos.', type: 'success' });
-                event.currentTarget.reset();
-              }}
-            >
-              <div className="form-row two-columns">
-                <label>
-                  Nombre
-                  <input type="text" placeholder="Tu nombre" />
-                </label>
-                <label>
-                  Correo
-                  <input type="email" placeholder="correo@ejemplo.com" />
-                </label>
+            <div className="col-12 col-lg-6">
+              <div className="row g-3">
+                <div className="col-12 col-sm-6">
+                  <StatBox
+                    value="+10 años"
+                    label="Experiencia"
+                    variant="primary"
+                    icon="bi bi-clock-history"
+                    subtext="En el rubro del gas"
+                  />
+                </div>
+                <div className="col-12 col-sm-6">
+                  <StatBox
+                    value="2.500+"
+                    label="Clientes"
+                    variant="success"
+                    icon="bi bi-emoji-smile"
+                    subtext="Hogares atendidos"
+                  />
+                </div>
+                <div className="col-12 col-sm-6">
+                  <StatBox
+                    value="100%"
+                    label="Certificado"
+                    variant="warning"
+                    icon="bi bi-shield-check"
+                    subtext="Normativa SEC"
+                  />
+                </div>
+                <div className="col-12 col-sm-6">
+                  <StatBox
+                    value="24/7"
+                    label="Atención"
+                    variant="info"
+                    icon="bi bi-headset"
+                    subtext="Soporte y contacto"
+                  />
+                </div>
               </div>
-              <label>
-                Mensaje
-                <textarea rows={5} placeholder="Escribe tu consulta..." />
-              </label>
-              <button type="submit" className="btn btn-primary">Enviar mensaje</button>
-            </form>
-          </div>
-
-          <div className="map-card">
-            <iframe src="https://www.google.com/maps?q=Santiago%20Chile&output=embed" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Mapa de ubicación" />
+            </div>
           </div>
         </div>
       </section>
-    </>
+
+      {/* Contact Section */}
+      <section id="contact" className="py-5 bg-white">
+        <div className="container">
+          <SectionHeader
+            eyebrow="Contáctanos"
+            title="Déjanos tu consulta o pedido especial"
+            subtitle="¿Tienes dudas sobre compatibilidad o necesitas cotización para empresas? Escríbenos."
+          />
+
+          <div className="row g-4 align-items-stretch">
+            <div className="col-12 col-lg-6">
+              <div className="card shadow-sm border-0 h-100 p-4">
+                <ContactForm onSubmit={handleContactSubmit} />
+              </div>
+            </div>
+
+            <div className="col-12 col-lg-6">
+              <div className="card shadow-sm border-0 h-100 overflow-hidden" style={{ minHeight: '350px' }}>
+                <iframe
+                  src="https://www.google.com/maps?q=Santiago%20Chile&output=embed"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Mapa de ubicación"
+                  className="w-100 h-100 border-0"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
