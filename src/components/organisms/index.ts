@@ -6,5 +6,7 @@ export * from './SiteHeader';
 export * from './SiteFooter';
 export * from './AdminUsersPanel';
 export * from './AdminProductsPanel';
+export * from './AdminCategoriesPanel';
 export * from './AdminOrdersPanel';
 export * from './AdminReportsPanel';
+

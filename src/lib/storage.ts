@@ -1,6 +1,7 @@
+import { SEED_CATEGORIES } from '../data/categories';
 import { SEED_PRODUCTS } from '../data/products';
 import { SEED_USERS } from '../data/users';
-import type { CartItem, Order, Product, User } from '../types';
+import type { CartItem, Category, Order, Product, User } from '../types';
 
 export const STORAGE_KEYS = {
   products: 'ev_products',
@@ -8,6 +9,7 @@ export const STORAGE_KEYS = {
   users: 'ev_users',
   currentUser: 'ev_currentUser',
   orders: 'ev_orders',
+  categories: 'ev_categories',
 } as const;
 
 function safeParse<T>(value: string | null): T | null {
@@ -149,4 +151,68 @@ export function updateOrderStatus(orderId: string, estado: Order['estado'], repa
   order.estado = estado;
   if (repartidor !== undefined) order.repartidor = repartidor;
   saveOrders(orders);
+}
+
+// --- Categories ---
+
+export function ensureSeedCategories() {
+  const existing = safeParse<Category[]>(localStorage.getItem(STORAGE_KEYS.categories));
+  if (!existing || existing.length === 0) {
+    localStorage.setItem(STORAGE_KEYS.categories, JSON.stringify(SEED_CATEGORIES));
+    return;
+  }
+
+  let hasChanges = false;
+  const merged = [...existing];
+  for (const seed of SEED_CATEGORIES) {
+    const exists = merged.some((c) => c.id === seed.id);
+    if (!exists) {
+      merged.push(seed);
+      hasChanges = true;
+    }
+  }
+  if (hasChanges) {
+    localStorage.setItem(STORAGE_KEYS.categories, JSON.stringify(merged));
+  }
+}
+
+export function getCategories(): Category[] {
+  ensureSeedCategories();
+  return safeParse<Category[]>(localStorage.getItem(STORAGE_KEYS.categories)) ?? [];
+}
+
+export function saveCategories(categories: Category[]) {
+  localStorage.setItem(STORAGE_KEYS.categories, JSON.stringify(categories));
+}
+
+export function addCategory(category: Category) {
+  const categories = getCategories();
+  categories.push(category);
+  saveCategories(categories);
+}
+
+export function updateCategory(id: string, data: Partial<Category>) {
+  const categories = getCategories();
+  const idx = categories.findIndex((c) => c.id === id);
+  if (idx === -1) return;
+  categories[idx] = { ...categories[idx], ...data };
+  saveCategories(categories);
+}
+
+export function deleteCategory(id: string): boolean {
+  const products = getProducts();
+  const category = getCategories().find((c) => c.id === id);
+  if (!category) return false;
+
+  const hasProducts = products.some((p) => p.categoria === category.nombre);
+  if (hasProducts) return false;
+
+  const categories = getCategories().filter((c) => c.id !== id);
+  saveCategories(categories);
+  return true;
+}
+
+export function deleteProduct(id: string) {
+  const products = getProducts().filter((p) => p.id !== id);
+  saveProducts(products);
 }

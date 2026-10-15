@@ -3,6 +3,12 @@ export type View = 'home' | 'catalog' | 'product' | 'cart' | 'login' | 'register
 export type NoticeType = 'success' | 'error' | 'info';
 export type OrderStatus = 'pendiente' | 'asignado' | 'en camino' | 'entregado';
 
+export type Category = {
+  id: string;
+  nombre: string;
+  descripcion: string;
+};
+
 export type Product = {
   id: string;
   nombre: string;

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import type { User } from '../types';
-import { getUsers, getProducts, getOrders } from '../lib/storage';
+import { getUsers, getProducts, getOrders, getCategories } from '../lib/storage';
 import { SectionHeader } from '../components/atoms/SectionHeader';
 import { AdminUsersPanel } from '../components/organisms/AdminUsersPanel';
 import { AdminProductsPanel } from '../components/organisms/AdminProductsPanel';
+import { AdminCategoriesPanel } from '../components/organisms/AdminCategoriesPanel';
 import { AdminOrdersPanel } from '../components/organisms/AdminOrdersPanel';
 import { AdminReportsPanel } from '../components/organisms/AdminReportsPanel';
 
-export type AdminTab = 'usuarios' | 'productos' | 'pedidos' | 'reportes';
+export type AdminTab = 'usuarios' | 'productos' | 'categorias' | 'pedidos' | 'reportes';
 
 export interface AdminDashboardProps {
   currentUser?: User | null;
@@ -19,15 +20,18 @@ export function AdminDashboard({ currentUser }: AdminDashboardProps) {
   const [users, setUsers] = useState(() => getUsers());
   const [products, setProducts] = useState(() => getProducts());
   const [orders, setOrders] = useState(() => getOrders());
+  const [categories, setCategories] = useState(() => getCategories());
 
   const refresh = () => {
     setUsers(getUsers());
     setProducts(getProducts());
     setOrders(getOrders());
+    setCategories(getCategories());
   };
 
   const tabs: Array<{ id: AdminTab; label: string; icon: string }> = [
     { id: 'usuarios', label: 'Usuarios', icon: 'bi bi-people' },
+    { id: 'categorias', label: 'Categorías', icon: 'bi bi-tags' },
     { id: 'productos', label: 'Productos', icon: 'bi bi-box-seam' },
     { id: 'pedidos', label: 'Pedidos', icon: 'bi bi-cart-check' },
     { id: 'reportes', label: 'Reportes y Métricas', icon: 'bi bi-graph-up' },
@@ -67,7 +71,8 @@ export function AdminDashboard({ currentUser }: AdminDashboardProps) {
         {/* Tab Panels */}
         <div className="tab-content">
           {tab === 'usuarios' && <AdminUsersPanel users={users} onRefresh={refresh} />}
-          {tab === 'productos' && <AdminProductsPanel products={products} onRefresh={refresh} />}
+          {tab === 'categorias' && <AdminCategoriesPanel categories={categories} onRefresh={refresh} />}
+          {tab === 'productos' && <AdminProductsPanel products={products} categories={categories} onRefresh={refresh} />}
           {tab === 'pedidos' && <AdminOrdersPanel orders={orders} />}
           {tab === 'reportes' && (
             <AdminReportsPanel orders={orders} products={products} users={users} />

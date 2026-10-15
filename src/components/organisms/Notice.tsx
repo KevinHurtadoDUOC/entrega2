@@ -1,11 +1,16 @@
 import type { Notice as NoticeType } from '../../types';
+import { useAppContext } from '../../lib/AppContext';
 
 export interface NoticeProps {
-  notice: NoticeType | null;
+  notice?: NoticeType | null;
   onClose?: () => void;
 }
 
-export function Notice({ notice, onClose }: NoticeProps) {
+export function Notice(props: NoticeProps) {
+  const context = useAppContext();
+  const notice = props.notice !== undefined ? props.notice : context.notice;
+  const onClose = props.onClose ?? (() => context.setNotice(null));
+
   if (!notice) return null;
 
   const alertVariant =

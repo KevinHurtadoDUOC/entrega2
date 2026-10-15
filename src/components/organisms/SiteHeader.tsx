@@ -1,15 +1,18 @@
 import type { User } from '../../types';
+import { useAppContext } from '../../lib/AppContext';
 import { Button } from '../atoms/Button';
 import { Badge } from '../atoms/Badge';
 
 export interface SiteHeaderProps {
   cartCount: number;
-  currentUser: User | null;
+  currentUser?: User | null;
   onNavigate: (path: string) => void;
   onLogout: () => void;
 }
 
-export function SiteHeader({ cartCount, currentUser, onNavigate, onLogout }: SiteHeaderProps) {
+export function SiteHeader({ cartCount, currentUser: propUser, onNavigate, onLogout }: SiteHeaderProps) {
+  const context = useAppContext();
+  const currentUser = propUser !== undefined ? propUser : context.currentUser;
   return (
     <header className="navbar navbar-expand-lg bg-white shadow-sm sticky-top border-bottom py-2">
       <div className="container">

@@ -1,20 +1,22 @@
 import { useState } from 'react';
-import type { Product } from '../../types';
-import { getProducts, saveProducts } from '../../lib/storage';
+import type { Category, Product } from '../../types';
+import { getProducts, saveProducts, deleteProduct } from '../../lib/storage';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
 import { ProductRow } from '../molecules/ProductRow';
 
 export interface AdminProductsPanelProps {
   products: Product[];
+  categories: Category[];
   onRefresh: () => void;
 }
 
-export function AdminProductsPanel({ products, onRefresh }: AdminProductsPanelProps) {
+export function AdminProductsPanel({ products, categories, onRefresh }: AdminProductsPanelProps) {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const existingCategories = [...new Set(products.map((p) => p.categoria))];
+  const categoryNames = categories.map((c) => c.nombre);
 
   const handleAddProduct = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -25,13 +27,14 @@ export function AdminProductsPanel({ products, onRefresh }: AdminProductsPanelPr
     const precioOferta = Number(fd.get('precioOferta') ?? 0);
     const stock = Number(fd.get('stock') ?? 0);
     const descripcion = String(fd.get('descripcion') ?? '').trim();
+    const imagen = String(fd.get('imagen') ?? '').trim();
 
     if (!nombre) {
       alert('El nombre del producto no puede estar vacío.');
       return;
     }
     if (!categoria) {
-      alert('La categoría no puede estar vacía.');
+      alert('Debes seleccionar una categoría.');
       return;
     }
     if (precio <= 0) {
@@ -50,10 +53,14 @@ export function AdminProductsPanel({ products, onRefresh }: AdminProductsPanelPr
       alert('El stock no puede ser negativo.');
       return;
     }
+    if (!imagen) {
+      alert('La URL de la imagen del producto es obligatoria.');
+      return;
+    }
 
     const all = getProducts();
     const id = `PRD-${Date.now()}`;
-    all.push({ id, nombre, categoria, precio, precioOferta, stock, descripcion, imagen: '' });
+    all.push({ id, nombre, categoria, precio, precioOferta, stock, descripcion, imagen });
     saveProducts(all);
     setShowAdd(false);
     onRefresh();
@@ -90,6 +97,12 @@ export function AdminProductsPanel({ products, onRefresh }: AdminProductsPanelPr
     onRefresh();
   };
 
+  const handleDeleteProduct = (id: string) => {
+    deleteProduct(id);
+    setDeleteConfirmId(null);
+    onRefresh();
+  };
+
   return (
     <div className="card shadow-sm border-0">
       <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
@@ -122,20 +135,16 @@ export function AdminProductsPanel({ products, onRefresh }: AdminProductsPanelPr
                 <div className="col-12 col-md-6">
                   <div className="mb-3">
                     <label className="form-label fw-semibold">Categoría</label>
-                    <input
-                      name="categoria"
-                      className="form-control"
-                      list="cat-add-list"
-                      placeholder="Escriba o elija categoría"
-                      required
-                    />
-                    <datalist id="cat-add-list">
-                      {existingCategories.map((c) => (
-                        <option key={c} value={c} />
+                    <select name="categoria" className="form-select" required>
+                      <option value="">— Seleccionar categoría —</option>
+                      {categoryNames.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
                       ))}
-                    </datalist>
+                    </select>
                     <small className="form-text text-muted">
-                      Si la categoría no existe, se creará automáticamente.
+                      Selecciona una categoría existente. Puedes crear nuevas en la pestaña "Categorías".
                     </small>
                   </div>
                 </div>
@@ -169,11 +178,21 @@ export function AdminProductsPanel({ products, onRefresh }: AdminProductsPanelPr
                     placeholder="25"
                   />
                 </div>
-                <div className="col-12">
+                <div className="col-12 col-md-6">
                   <Input
                     label="Descripción"
                     name="descripcion"
                     placeholder="Descripción detallada del producto..."
+                  />
+                </div>
+                <div className="col-12 col-md-6">
+                  <Input
+                    label="URL de imagen del producto"
+                    name="imagen"
+                    type="url"
+                    required
+                    placeholder="https://ejemplo.com/imagen.png"
+                    helperText="Ingresa la URL completa de la imagen del producto."
                   />
                 </div>
                 <div className="col-12">
@@ -205,12 +224,24 @@ export function AdminProductsPanel({ products, onRefresh }: AdminProductsPanelPr
                   key={p.id}
                   product={p}
                   isEditing={editId === p.id}
-                  categories={existingCategories}
+                  categories={categoryNames}
+                  deleteConfirmId={deleteConfirmId}
                   onStartEdit={setEditId}
                   onCancelEdit={() => setEditId(null)}
                   onSaveEdit={handleSaveEdit}
+                  onDeleteRequest={(id) => setDeleteConfirmId(id)}
+                  onDeleteConfirm={handleDeleteProduct}
+                  onDeleteCancel={() => setDeleteConfirmId(null)}
                 />
               ))}
+              {products.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center text-muted py-4">
+                    <i className="bi bi-inbox fs-3 d-block mb-2" />
+                    No hay productos registrados.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

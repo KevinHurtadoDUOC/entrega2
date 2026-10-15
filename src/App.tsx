@@ -16,8 +16,9 @@ import { ProductPage } from './pages/ProductPage';
 import { RepartidorDashboard } from './pages/RepartidorDashboard';
 import { loginUser, registerUser } from './lib/auth';
 import { addToCart, checkoutCart, clearCartItems, decreaseQty, getCartSnapshot, increaseQty } from './lib/cart';
-import { getCartCount, getCurrentUser, getProducts, queueNotice, removeCurrentUser, ensureSeedUsers } from './lib/storage';
+import { getCartCount, getCategories, getCurrentUser, getProducts, queueNotice, removeCurrentUser, ensureSeedUsers } from './lib/storage';
 import { canAccessRoute, isAuthenticated } from './lib/rbac';
+import { AppContext } from './lib/AppContext';
 import type { Notice as NoticeType, User } from './types';
 
 function App() {
@@ -81,6 +82,7 @@ function App() {
   }, [currentUser, location.pathname, navigate]);
 
   const products = useMemo(() => getProducts(), []);
+  const categories = useMemo(() => getCategories(), []);
   const categoryOptions = useMemo(() => [...new Set(products.map((item) => item.categoria))], [products]);
 
   const filteredProducts = useMemo(() => {
@@ -172,126 +174,139 @@ function App() {
     navigate('/');
   };
 
+  const contextValue = useMemo(
+    () => ({
+      currentUser,
+      products,
+      categories,
+      notice,
+      setNotice,
+    }),
+    [currentUser, products, categories, notice]
+  );
+
   return (
-    <div className="d-flex flex-column min-vh-100 bg-light">
-      <Notice notice={notice} onClose={() => setNotice(null)} />
-      <SiteHeader
-        cartCount={cartCount}
-        currentUser={currentUser}
-        onNavigate={navigate}
-        onLogout={handleLogout}
-      />
-      <main className="flex-grow-1">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <HomePage
-                products={products}
-                onNavigate={navigate}
-                onAddToCart={handleAddToCart}
-                onSetNotice={setNotice}
-              />
-            }
-          />
-          <Route path="/about" element={<AboutPage onNavigate={navigate} />} />
-          <Route path="/contact" element={<ContactPage onSetNotice={setNotice} />} />
-          <Route
-            path="/catalog"
-            element={
-              <CatalogPage
-                categoryFilter={categoryFilter}
-                priceMin={priceMin}
-                priceMax={priceMax}
-                categoryOptions={categoryOptions}
-                filteredProducts={filteredProducts}
-                onCategoryChange={setCategoryFilter}
-                onPriceMinChange={setPriceMin}
-                onPriceMaxChange={setPriceMax}
-                onNavigate={navigate}
-                onAddToCart={handleAddToCart}
-              />
-            }
-          />
-          <Route
-            path="/product/:id"
-            element={<ProductPage onAddToCart={handleAddToCart} onNavigate={navigate} />}
-          />
-          <Route
-            path="/cart"
-            element={
-              <CartPage
-                cart={cart}
-                products={products}
-                subtotal={subtotal}
-                shipping={shipping}
-                total={total}
-                onNavigate={navigate}
-                onDecrease={handleDecreaseQty}
-                onIncrease={handleIncreaseQty}
-                onCheckout={handleCheckout}
-                onClearCart={() => {
-                  clearCartItems();
-                  setCartCount(getCartCount());
-                }}
-              />
-            }
-          />
-          <Route
-            path="/login"
-            element={<AuthPage mode="login" onNavigate={navigate} onSubmit={handleLoginSubmit} />}
-          />
-          <Route
-            path="/register"
-            element={
-              <AuthPage mode="register" onNavigate={navigate} onSubmit={handleRegisterSubmit} />
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              currentUser?.role === 'admin' ? (
-                <AdminDashboard currentUser={currentUser} onNavigate={navigate} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route
-            path="/operador"
-            element={
-              currentUser?.role === 'operador' ? (
-                <OperadorDashboard currentUser={currentUser} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route
-            path="/repartidor"
-            element={
-              currentUser?.role === 'repartidor' ? (
-                <RepartidorDashboard currentUser={currentUser} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route
-            path="/cliente"
-            element={
-              currentUser?.role === 'cliente' ? (
-                <ClienteDashboard currentUser={currentUser} onNavigate={navigate} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-      <SiteFooter onNavigate={navigate} />
-    </div>
+    <AppContext.Provider value={contextValue}>
+      <div className="d-flex flex-column min-vh-100 bg-light">
+        <Notice notice={notice} onClose={() => setNotice(null)} />
+        <SiteHeader
+          cartCount={cartCount}
+          currentUser={currentUser}
+          onNavigate={navigate}
+          onLogout={handleLogout}
+        />
+        <main className="flex-grow-1">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <HomePage
+                  products={products}
+                  onNavigate={navigate}
+                  onAddToCart={handleAddToCart}
+                  onSetNotice={setNotice}
+                />
+              }
+            />
+            <Route path="/about" element={<AboutPage onNavigate={navigate} />} />
+            <Route path="/contact" element={<ContactPage onSetNotice={setNotice} />} />
+            <Route
+              path="/catalog"
+              element={
+                <CatalogPage
+                  categoryFilter={categoryFilter}
+                  priceMin={priceMin}
+                  priceMax={priceMax}
+                  categoryOptions={categoryOptions}
+                  filteredProducts={filteredProducts}
+                  onCategoryChange={setCategoryFilter}
+                  onPriceMinChange={setPriceMin}
+                  onPriceMaxChange={setPriceMax}
+                  onNavigate={navigate}
+                  onAddToCart={handleAddToCart}
+                />
+              }
+            />
+            <Route
+              path="/product/:id"
+              element={<ProductPage onAddToCart={handleAddToCart} onNavigate={navigate} />}
+            />
+            <Route
+              path="/cart"
+              element={
+                <CartPage
+                  cart={cart}
+                  products={products}
+                  subtotal={subtotal}
+                  shipping={shipping}
+                  total={total}
+                  onNavigate={navigate}
+                  onDecrease={handleDecreaseQty}
+                  onIncrease={handleIncreaseQty}
+                  onCheckout={handleCheckout}
+                  onClearCart={() => {
+                    clearCartItems();
+                    setCartCount(getCartCount());
+                  }}
+                />
+              }
+            />
+            <Route
+              path="/login"
+              element={<AuthPage mode="login" onNavigate={navigate} onSubmit={handleLoginSubmit} />}
+            />
+            <Route
+              path="/register"
+              element={
+                <AuthPage mode="register" onNavigate={navigate} onSubmit={handleRegisterSubmit} />
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                currentUser?.role === 'admin' ? (
+                  <AdminDashboard currentUser={currentUser} onNavigate={navigate} />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/operador"
+              element={
+                currentUser?.role === 'operador' ? (
+                  <OperadorDashboard currentUser={currentUser} />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/repartidor"
+              element={
+                currentUser?.role === 'repartidor' ? (
+                  <RepartidorDashboard currentUser={currentUser} />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/cliente"
+              element={
+                currentUser?.role === 'cliente' ? (
+                  <ClienteDashboard currentUser={currentUser} onNavigate={navigate} />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+        <SiteFooter onNavigate={navigate} />
+      </div>
+    </AppContext.Provider>
   );
 }
 

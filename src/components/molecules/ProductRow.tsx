@@ -8,18 +8,26 @@ export interface ProductRowProps {
   product: Product;
   isEditing: boolean;
   categories: string[];
+  deleteConfirmId: string | null;
   onStartEdit: (id: string) => void;
   onCancelEdit: () => void;
   onSaveEdit: (id: string, data: Partial<Product>) => void;
+  onDeleteRequest: (id: string) => void;
+  onDeleteConfirm: (id: string) => void;
+  onDeleteCancel: () => void;
 }
 
 export function ProductRow({
   product,
   isEditing,
   categories,
+  deleteConfirmId,
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
+  onDeleteRequest,
+  onDeleteConfirm,
+  onDeleteCancel,
 }: ProductRowProps) {
   const [nombre, setNombre] = useState(product.nombre);
   const [categoria, setCategoria] = useState(product.categoria);
@@ -39,17 +47,17 @@ export function ProductRow({
           />
         </td>
         <td>
-          <input
-            className="form-control form-control-sm"
+          <select
+            className="form-select form-select-sm"
             value={categoria}
             onChange={(e) => setCategoria(e.target.value)}
-            list={`cat-list-${product.id}`}
-          />
-          <datalist id={`cat-list-${product.id}`}>
+          >
             {categories.map((c) => (
-              <option key={c} value={c} />
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
-          </datalist>
+          </select>
         </td>
         <td>
           <input
@@ -102,8 +110,10 @@ export function ProductRow({
     );
   }
 
+  const isDeleting = deleteConfirmId === product.id;
+
   return (
-    <tr className="align-middle">
+    <tr className={`align-middle ${isDeleting ? 'table-danger' : ''}`}>
       <td className="font-monospace small text-muted">{product.id}</td>
       <td className="fw-semibold text-dark">{product.nombre}</td>
       <td>
@@ -119,14 +129,45 @@ export function ProductRow({
         </span>
       </td>
       <td>
-        <Button
-          variant="outline-primary"
-          size="sm"
-          icon="bi bi-pencil"
-          onClick={() => onStartEdit(product.id)}
-        >
-          Editar
-        </Button>
+        {isDeleting ? (
+          <div className="d-flex gap-1 align-items-center">
+            <span className="text-danger small fw-semibold me-1">¿Eliminar?</span>
+            <Button
+              variant="danger"
+              size="sm"
+              icon="bi bi-trash"
+              onClick={() => onDeleteConfirm(product.id)}
+            >
+              Sí
+            </Button>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={onDeleteCancel}
+            >
+              No
+            </Button>
+          </div>
+        ) : (
+          <div className="d-flex gap-1">
+            <Button
+              variant="outline-primary"
+              size="sm"
+              icon="bi bi-pencil"
+              onClick={() => onStartEdit(product.id)}
+            >
+              Editar
+            </Button>
+            <Button
+              variant="outline-danger"
+              size="sm"
+              icon="bi bi-trash"
+              onClick={() => onDeleteRequest(product.id)}
+            >
+              Eliminar
+            </Button>
+          </div>
+        )}
       </td>
     </tr>
   );
