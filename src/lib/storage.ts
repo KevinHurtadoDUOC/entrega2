@@ -1,7 +1,7 @@
 import { SEED_CATEGORIES } from '../data/categories';
 import { SEED_PRODUCTS } from '../data/products';
 import { SEED_USERS } from '../data/users';
-import type { CartItem, Category, Order, Product, User } from '../types';
+import type { CartItem, Category, Notice, NoticeType, Order, Product, User } from '../types';
 
 export const STORAGE_KEYS = {
   products: 'ev_products',
@@ -124,8 +124,10 @@ export function getCartCount() {
   return getCart().reduce((sum, item) => sum + item.cantidad, 0);
 }
 
-export function queueNotice(message: string, type: 'success' | 'error' | 'info' = 'info') {
-  sessionStorage.setItem('ev_notice', JSON.stringify({ message, type }));
+export function queueNotice(message: string, type: NoticeType = 'info', title?: string) {
+  const notice: Notice = { message, type, title };
+  sessionStorage.setItem('ev_notice', JSON.stringify(notice));
+  window.dispatchEvent(new CustomEvent('ev_notice_updated', { detail: notice }));
 }
 
 // --- Orders ---

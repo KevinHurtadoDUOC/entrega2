@@ -1,12 +1,13 @@
 import { createContext, useContext } from 'react';
-import type { Category, Notice as NoticeType, Product, User } from '../types';
+import type { Category, Notice, NoticeType, Product, User } from '../types';
 
 export interface AppContextValue {
   currentUser: User | null;
   products: Product[];
   categories: Category[];
-  notice: NoticeType | null;
-  setNotice: (notice: NoticeType | null) => void;
+  notice: Notice | null;
+  setNotice: (notice: Notice | null) => void;
+  showAlert: (message: string, type?: NoticeType, title?: string) => void;
 }
 
 export const AppContext = createContext<AppContextValue>({
@@ -15,6 +16,7 @@ export const AppContext = createContext<AppContextValue>({
   categories: [],
   notice: null,
   setNotice: () => {},
+  showAlert: () => {},
 });
 
 export function useAppContext() {

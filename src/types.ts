@@ -1,6 +1,6 @@
 export type UserRole = 'admin' | 'operador' | 'repartidor' | 'cliente';
 export type View = 'home' | 'catalog' | 'product' | 'cart' | 'login' | 'register';
-export type NoticeType = 'success' | 'error' | 'info';
+export type NoticeType = 'success' | 'error' | 'warning' | 'info';
 export type OrderStatus = 'pendiente' | 'asignado' | 'en camino' | 'entregado';
 
 export type Category = {
@@ -36,6 +36,7 @@ export type User = {
 export type Notice = {
   message: string;
   type: NoticeType;
+  title?: string;
 };
 
 export type OrderItem = {

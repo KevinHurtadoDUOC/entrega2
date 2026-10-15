@@ -176,45 +176,43 @@ Proporciona una forma de pasar datos a través del árbol de componentes sin ten
 
 1. **Definición del Contexto ([`src/lib/AppContext.ts`](file:///c:/Users/Duoc/Desktop/entrega2/src/lib/AppContext.ts))**:
    ```tsx
-   export interface AppContextType {
+   export interface AppContextValue {
      currentUser: User | null;
      products: Product[];
      categories: Category[];
-     notice: NoticeType | null;
-     setNotice: (notice: NoticeType | null) => void;
+     notice: Notice | null;
+     setNotice: (notice: Notice | null) => void;
+     showAlert: (message: string, type?: NoticeType, title?: string) => void;
    }
 
-   export const AppContext = createContext<AppContextType | null>(null);
+   export const AppContext = createContext<AppContextValue>(...);
    ```
 
-2. **Proveedor en la raíz ([`src/App.tsx:L177-L189`](file:///c:/Users/Duoc/Desktop/entrega2/src/App.tsx#L177-L189))**:
+2. **Proveedor en la raíz ([`src/App.tsx:L177-L198`](file:///c:/Users/Duoc/Desktop/entrega2/src/App.tsx#L177-L198))**:
    ```tsx
+   const showAlert = (message: string, type: NoticeType = 'info', title?: string) => {
+     setNotice({ message, type, title });
+   };
+
    const contextValue = useMemo(
-     () => ({ currentUser, products, categories, notice, setNotice }),
+     () => ({ currentUser, products, categories, notice, setNotice, showAlert }),
      [currentUser, products, categories, notice]
    );
 
    return (
      <AppContext.Provider value={contextValue}>
-       {/* Toda la aplicación tiene acceso a estos datos */}
+       {/* Toda la aplicación tiene acceso a estos datos y funciones */}
      </AppContext.Provider>
    );
    ```
 
 3. **Consumo en componentes**:
-   - **[`src/components/organisms/Notice.tsx:L8-L12`](file:///c:/Users/Duoc/Desktop/entrega2/src/components/organisms/Notice.tsx#L8-L12)**:
-     Consume directamente `notice` y `setNotice` desde el contexto cuando no se pasan como props:
-     ```tsx
-     const context = useAppContext();
-     const notice = props.notice !== undefined ? props.notice : context.notice;
-     const onClose = props.onClose ?? (() => context.setNotice(null));
-     ```
-   - **[`src/components/organisms/SiteHeader.tsx:L12-L14`](file:///c:/Users/Duoc/Desktop/entrega2/src/components/organisms/SiteHeader.tsx#L12-L14)**:
-     Consume `currentUser` globalmente para mostrar el nombre del usuario o el botón de inicio de sesión:
-     ```tsx
-     const context = useAppContext();
-     const currentUser = propUser !== undefined ? propUser : context.currentUser;
-     ```
+   - **[`src/components/organisms/Notice.tsx`](file:///c:/Users/Duoc/Desktop/entrega2/src/components/organisms/Notice.tsx)**:
+     Consume directamente `notice` y `setNotice` desde el contexto cuando no se pasan como props para renderizar la alerta estética flotante con cuenta regresiva.
+   - **[`src/components/organisms/SiteHeader.tsx`](file:///c:/Users/Duoc/Desktop/entrega2/src/components/organisms/SiteHeader.tsx)**:
+     Consume `currentUser` globalmente para mostrar el nombre del usuario o el botón de inicio de sesión.
+   - **Paneles Administrativos y Dashboards** ([`AdminProductsPanel.tsx`](file:///c:/Users/Duoc/Desktop/entrega2/src/components/organisms/AdminProductsPanel.tsx), [`AdminCategoriesPanel.tsx`](file:///c:/Users/Duoc/Desktop/entrega2/src/components/organisms/AdminCategoriesPanel.tsx), [`AdminUsersPanel.tsx`](file:///c:/Users/Duoc/Desktop/entrega2/src/components/organisms/AdminUsersPanel.tsx), [`OperadorDashboard.tsx`](file:///c:/Users/Duoc/Desktop/entrega2/src/pages/OperadorDashboard.tsx), [`RepartidorDashboard.tsx`](file:///c:/Users/Duoc/Desktop/entrega2/src/pages/RepartidorDashboard.tsx), [`ContactPage.tsx`](file:///c:/Users/Duoc/Desktop/entrega2/src/pages/ContactPage.tsx)):
+     Consumen `showAlert` mediante `useAppContext()` para emitir alertas visuales personalizadas e inmediatas en validaciones y acciones exitosas, eliminando por completo los `alert()` nativos del navegador.
 
 ---
 

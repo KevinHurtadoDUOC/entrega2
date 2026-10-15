@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import type { Category } from '../../types';
-import { getCategories, saveCategories, deleteCategory as deleteCategoryStorage } from '../../lib/storage';
+import { getCategories, saveCategories, deleteCategory as deleteCategoryStorage, getProducts } from '../../lib/storage';
+import { useAppContext } from '../../lib/AppContext';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
 import { Badge } from '../atoms/Badge';
+import { AlertBanner } from '../molecules/AlertBanner';
 
 export interface AdminCategoriesPanelProps {
   categories: Category[];
@@ -11,11 +13,14 @@ export interface AdminCategoriesPanelProps {
 }
 
 export function AdminCategoriesPanel({ categories, onRefresh }: AdminCategoriesPanelProps) {
+  const { showAlert } = useAppContext();
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editNombre, setEditNombre] = useState('');
   const [editDescripcion, setEditDescripcion] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [panelNotice, setPanelNotice] = useState<{ message: string; type: 'error' | 'warning' | 'info' | 'success'; title?: string } | null>(null);
 
   const handleAddCategory = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -24,18 +29,21 @@ export function AdminCategoriesPanel({ categories, onRefresh }: AdminCategoriesP
     const descripcion = String(fd.get('descripcion') ?? '').trim();
 
     if (!nombre) {
-      alert('El nombre de la categoría no puede estar vacío.');
+      setFormError('El nombre de la categoría no puede estar vacío.');
+      showAlert('El nombre de la categoría no puede estar vacío.', 'warning', 'Validación');
       return;
     }
     if (!descripcion) {
-      alert('La descripción de la categoría no puede estar vacía.');
+      setFormError('La descripción de la categoría no puede estar vacía.');
+      showAlert('La descripción de la categoría no puede estar vacía.', 'warning', 'Validación');
       return;
     }
 
     const existing = getCategories();
     const duplicate = existing.some((c) => c.nombre.toLowerCase() === nombre.toLowerCase());
     if (duplicate) {
-      alert('Ya existe una categoría con ese nombre.');
+      setFormError('Ya existe una categoría con ese nombre.');
+      showAlert('Ya existe una categoría con ese nombre.', 'error', 'Nombre Duplicado');
       return;
     }
 
@@ -43,6 +51,8 @@ export function AdminCategoriesPanel({ categories, onRefresh }: AdminCategoriesP
     existing.push({ id, nombre, descripcion });
     saveCategories(existing);
     setShowAdd(false);
+    setFormError(null);
+    showAlert(`Categoría "${nombre}" creada exitosamente.`, 'success', 'Categoría Creada');
     onRefresh();
   };
 
@@ -54,11 +64,11 @@ export function AdminCategoriesPanel({ categories, onRefresh }: AdminCategoriesP
 
   const handleSaveEdit = (id: string) => {
     if (!editNombre.trim()) {
-      alert('El nombre no puede estar vacío.');
+      showAlert('El nombre no puede estar vacío.', 'warning', 'Edición');
       return;
     }
     if (!editDescripcion.trim()) {
-      alert('La descripción no puede estar vacía.');
+      showAlert('La descripción no puede estar vacía.', 'warning', 'Edición');
       return;
     }
 
@@ -67,7 +77,7 @@ export function AdminCategoriesPanel({ categories, onRefresh }: AdminCategoriesP
       (c) => c.id !== id && c.nombre.toLowerCase() === editNombre.trim().toLowerCase()
     );
     if (duplicate) {
-      alert('Ya existe otra categoría con ese nombre.');
+      showAlert('Ya existe otra categoría con ese nombre.', 'error', 'Nombre Duplicado');
       return;
     }
 
@@ -76,13 +86,30 @@ export function AdminCategoriesPanel({ categories, onRefresh }: AdminCategoriesP
     existing[idx] = { ...existing[idx], nombre: editNombre.trim(), descripcion: editDescripcion.trim() };
     saveCategories(existing);
     setEditId(null);
+    showAlert(`Categoría "${editNombre.trim()}" actualizada con éxito.`, 'success', 'Cambios Guardados');
     onRefresh();
   };
 
   const handleDelete = (id: string) => {
+    const cat = categories.find((c) => c.id === id);
+    const catName = cat ? cat.nombre : 'Categoría';
     const success = deleteCategoryStorage(id);
     if (!success) {
-      alert('No se puede eliminar esta categoría porque tiene productos asociados. Elimina o reasigna los productos primero.');
+      const msg = `No se puede eliminar la categoría "${catName}" porque tiene productos asociados en el inventario. Elimina o reasigna los productos primero.`;
+      showAlert(msg, 'error', 'Acción No Permitida');
+      setPanelNotice({
+        type: 'error',
+        title: 'Categoría en Uso',
+        message: msg,
+      });
+    } else {
+      const msg = `Categoría "${catName}" eliminada correctamente del sistema.`;
+      showAlert(msg, 'info', 'Categoría Eliminada');
+      setPanelNotice({
+        type: 'info',
+        title: 'Categoría Eliminada',
+        message: msg,
+      });
     }
     setDeleteConfirmId(null);
     onRefresh();
@@ -112,6 +139,14 @@ export function AdminCategoriesPanel({ categories, onRefresh }: AdminCategoriesP
         {showAdd && (
           <div className="p-4 bg-light border-bottom">
             <h6 className="fw-bold mb-3 text-dark">Nueva Categoría</h6>
+            {formError && (
+              <AlertBanner
+                variant="warning"
+                message={formError}
+                onClose={() => setFormError(null)}
+                className="mb-3"
+              />
+            )}
             <form onSubmit={handleAddCategory}>
               <div className="row g-3">
                 <div className="col-12 col-md-6">
@@ -137,6 +172,17 @@ export function AdminCategoriesPanel({ categories, onRefresh }: AdminCategoriesP
                 </div>
               </div>
             </form>
+          </div>
+        )}
+
+        {panelNotice && (
+          <div className="p-3 bg-light border-bottom">
+            <AlertBanner
+              variant={panelNotice.type}
+              title={panelNotice.title}
+              message={panelNotice.message}
+              onClose={() => setPanelNotice(null)}
+            />
           </div>
         )}
 
@@ -196,6 +242,10 @@ export function AdminCategoriesPanel({ categories, onRefresh }: AdminCategoriesP
                   );
                 }
 
+                const productCount = getProducts().filter(
+                  (p) => p.categoria.trim().toLowerCase() === cat.nombre.trim().toLowerCase()
+                ).length;
+
                 return (
                   <tr key={cat.id} className="align-middle">
                     <td className="font-monospace small text-muted">{cat.id}</td>
@@ -204,15 +254,24 @@ export function AdminCategoriesPanel({ categories, onRefresh }: AdminCategoriesP
                       {cat.descripcion}
                     </td>
                     <td>
-                      <Badge variant="secondary" pill>
-                        {/* count products in this category */}
-                        Usada
-                      </Badge>
+                      {productCount > 0 ? (
+                        <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1 fw-semibold">
+                          <i className="bi bi-box-seam me-1" />
+                          {productCount} {productCount === 1 ? 'producto' : 'productos'}
+                        </span>
+                      ) : (
+                        <span className="badge bg-success-subtle text-success-emphasis border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold">
+                          <i className="bi bi-check-circle me-1" />
+                          Sin uso
+                        </span>
+                      )}
                     </td>
                     <td>
                       {deleteConfirmId === cat.id ? (
                         <div className="d-flex gap-1 align-items-center">
-                          <span className="text-danger small fw-semibold me-1">¿Eliminar?</span>
+                          <span className="text-danger small fw-semibold me-1">
+                            {productCount > 0 ? '¿Eliminar (en uso)?' : '¿Eliminar?'}
+                          </span>
                           <Button
                             variant="danger"
                             size="sm"

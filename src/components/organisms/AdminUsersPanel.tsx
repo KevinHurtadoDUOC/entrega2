@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { getUsers, saveUsers } from '../../lib/storage';
+import { useAppContext } from '../../lib/AppContext';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
 import { Select } from '../atoms/Select';
 import { UserRow } from '../molecules/UserRow';
+import { AlertBanner } from '../molecules/AlertBanner';
 
 export interface AdminUsersPanelProps {
   users: Array<Record<string, string | boolean | undefined>>;
@@ -11,8 +13,10 @@ export interface AdminUsersPanelProps {
 }
 
 export function AdminUsersPanel({ users, onRefresh }: AdminUsersPanelProps) {
+  const { showAlert } = useAppContext();
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleToggleActive = (index: number) => {
     const all = getUsers();
@@ -25,13 +29,14 @@ export function AdminUsersPanel({ users, onRefresh }: AdminUsersPanelProps) {
     const all = getUsers();
     all[index].role = role;
     saveUsers(all);
+    showAlert(`Rol de usuario actualizado a "${role}".`, 'info', 'Rol Modificado');
     onRefresh();
   };
 
   const handleSaveEdit = (index: number, data: { nombre: string; apellido: string; direccion: string }) => {
     const all = getUsers();
     if (!data.nombre?.trim() || !data.apellido?.trim()) {
-      alert('Nombre y apellido no pueden estar vacíos.');
+      showAlert('Nombre y apellido no pueden estar vacíos.', 'warning', 'Validación');
       return;
     }
     all[index].nombre = data.nombre.trim();
@@ -39,6 +44,7 @@ export function AdminUsersPanel({ users, onRefresh }: AdminUsersPanelProps) {
     all[index].direccion = data.direccion?.trim() || '';
     saveUsers(all);
     setEditIdx(null);
+    showAlert('Datos del usuario guardados exitosamente.', 'success', 'Usuario Actualizado');
     onRefresh();
   };
 
@@ -53,13 +59,15 @@ export function AdminUsersPanel({ users, onRefresh }: AdminUsersPanelProps) {
     const direccion = String(fd.get('direccion') ?? '').trim();
 
     if (!nombre || !apellido || !email || !password) {
-      alert('Todos los campos obligatorios deben estar completos.');
+      setFormError('Todos los campos obligatorios deben estar completos.');
+      showAlert('Todos los campos obligatorios deben estar completos.', 'warning', 'Campos Incompletos');
       return;
     }
 
     const all = getUsers();
     if (all.some((u) => String(u.email ?? '').toLowerCase() === email)) {
-      alert('Este correo ya está registrado.');
+      setFormError('Este correo electrónico ya se encuentra registrado.');
+      showAlert('Este correo ya está registrado en el sistema.', 'error', 'Correo Duplicado');
       return;
     }
 
@@ -77,6 +85,8 @@ export function AdminUsersPanel({ users, onRefresh }: AdminUsersPanelProps) {
     });
     saveUsers(all);
     setShowAdd(false);
+    setFormError(null);
+    showAlert(`Usuario "${nombre} ${apellido}" creado exitosamente.`, 'success', 'Usuario Registrado');
     onRefresh();
   };
 
@@ -111,6 +121,14 @@ export function AdminUsersPanel({ users, onRefresh }: AdminUsersPanelProps) {
         {showAdd && (
           <div className="p-4 bg-light border-bottom">
             <h6 className="fw-bold mb-3 text-dark">Nuevo Usuario</h6>
+            {formError && (
+              <AlertBanner
+                variant="warning"
+                message={formError}
+                onClose={() => setFormError(null)}
+                className="mb-3"
+              />
+            )}
             <form onSubmit={handleAddUser}>
               <div className="row g-3">
                 <div className="col-12 col-md-6">

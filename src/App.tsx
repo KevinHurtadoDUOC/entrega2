@@ -19,17 +19,17 @@ import { addToCart, checkoutCart, clearCartItems, decreaseQty, getCartSnapshot, 
 import { getCartCount, getCategories, getCurrentUser, getProducts, queueNotice, removeCurrentUser, ensureSeedUsers } from './lib/storage';
 import { canAccessRoute, isAuthenticated } from './lib/rbac';
 import { AppContext } from './lib/AppContext';
-import type { Notice as NoticeType, User } from './types';
+import type { Notice as NoticeState, NoticeType, User } from './types';
 
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [notice, setNotice] = useState<NoticeType | null>(() => {
+  const [notice, setNotice] = useState<NoticeState | null>(() => {
     const rawNotice = sessionStorage.getItem('ev_notice');
     if (!rawNotice) return null;
     try {
-      const parsed = JSON.parse(rawNotice) as NoticeType;
+      const parsed = JSON.parse(rawNotice) as NoticeState;
       sessionStorage.removeItem('ev_notice');
       return parsed;
     } catch (e) {
@@ -51,7 +51,7 @@ function App() {
 
   useEffect(() => {
     if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(null), 3000);
+    const timeout = window.setTimeout(() => setNotice(null), 4500);
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
@@ -61,12 +61,20 @@ function App() {
       if (event.key === 'ev_currentUser') setCurrentUserState(getCurrentUser());
     };
     const onAuthChange = () => setCurrentUserState(getCurrentUser());
+    const onNoticeUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<NoticeState>;
+      if (customEvent.detail) {
+        setNotice(customEvent.detail);
+      }
+    };
 
     window.addEventListener('storage', onStorage);
     window.addEventListener('ev_auth_change', onAuthChange);
+    window.addEventListener('ev_notice_updated', onNoticeUpdate);
     return () => {
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('ev_auth_change', onAuthChange);
+      window.removeEventListener('ev_notice_updated', onNoticeUpdate);
     };
   }, []);
 
@@ -174,6 +182,10 @@ function App() {
     navigate('/');
   };
 
+  const showAlert = (message: string, type: NoticeType = 'info', title?: string) => {
+    setNotice({ message, type, title });
+  };
+
   const contextValue = useMemo(
     () => ({
       currentUser,
@@ -181,6 +193,7 @@ function App() {
       categories,
       notice,
       setNotice,
+      showAlert,
     }),
     [currentUser, products, categories, notice]
   );
@@ -188,7 +201,6 @@ function App() {
   return (
     <AppContext.Provider value={contextValue}>
       <div className="d-flex flex-column min-vh-100 bg-light">
-        <Notice notice={notice} onClose={() => setNotice(null)} />
         <SiteHeader
           cartCount={cartCount}
           currentUser={currentUser}
@@ -305,6 +317,7 @@ function App() {
           </Routes>
         </main>
         <SiteFooter onNavigate={navigate} />
+        <Notice notice={notice} onClose={() => setNotice(null)} />
       </div>
     </AppContext.Provider>
   );

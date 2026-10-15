@@ -6,3 +6,4 @@ export * from './OrderCard';
 export * from './ContactForm';
 export * from './UserRow';
 export * from './ProductRow';
+export * from './AlertBanner';

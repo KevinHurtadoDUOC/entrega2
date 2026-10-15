@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { OrderStatus, User } from '../types';
 import { getOrders, saveOrders, getUsers } from '../lib/storage';
+import { useAppContext } from '../lib/AppContext';
 import { SectionHeader } from '../components/atoms/SectionHeader';
 import { StatBox } from '../components/atoms/StatBox';
 import { OrderCard } from '../components/molecules/OrderCard';
@@ -11,6 +12,7 @@ export interface OperadorDashboardProps {
 }
 
 export function OperadorDashboard({ currentUser: propUser, onRefresh }: OperadorDashboardProps) {
+  const { showAlert } = useAppContext();
   const [orders, setOrders] = useState(() => getOrders());
   const [users, setUsers] = useState(() => getUsers());
 
@@ -37,6 +39,7 @@ export function OperadorDashboard({ currentUser: propUser, onRefresh }: Operador
     order.repartidor = repartidorEmail;
     order.estado = 'asignado';
     saveOrders(all);
+    showAlert(`Pedido #${orderId.slice(-6)} asignado a ${repartidorEmail}.`, 'success', 'Repartidor Asignado');
     refresh();
   };
 
@@ -46,6 +49,7 @@ export function OperadorDashboard({ currentUser: propUser, onRefresh }: Operador
     if (!order) return;
     order.estado = estado;
     saveOrders(all);
+    showAlert(`Estado de pedido #${orderId.slice(-6)} actualizado a "${estado}".`, 'info', 'Estado Actualizado');
     refresh();
   };
 

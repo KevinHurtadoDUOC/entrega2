@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { OrderStatus, User } from '../types';
 import { getOrders, saveOrders, getCurrentUser } from '../lib/storage';
+import { useAppContext } from '../lib/AppContext';
 import { SectionHeader } from '../components/atoms/SectionHeader';
 import { StatBox } from '../components/atoms/StatBox';
 import { OrderCard } from '../components/molecules/OrderCard';
@@ -11,6 +12,7 @@ export interface RepartidorDashboardProps {
 }
 
 export function RepartidorDashboard({ currentUser: propUser, onRefresh }: RepartidorDashboardProps) {
+  const { showAlert } = useAppContext();
   const [allOrders, setAllOrders] = useState(() => getOrders());
   const refresh = () => {
     setAllOrders(getOrders());
@@ -33,6 +35,11 @@ export function RepartidorDashboard({ currentUser: propUser, onRefresh }: Repart
     if (order.repartidor !== currentUser?.email) return;
     order.estado = nuevoEstado;
     saveOrders(all);
+    showAlert(
+      `Pedido #${orderId.slice(-6)} marcado como "${nuevoEstado}".`,
+      nuevoEstado === 'entregado' ? 'success' : 'info',
+      nuevoEstado === 'entregado' ? 'Entrega Completada' : 'En Ruta'
+    );
     refresh();
   };
 

@@ -1,4 +1,5 @@
 import type { Notice } from '../types';
+import { useAppContext } from '../lib/AppContext';
 import { SectionHeader } from '../components/atoms/SectionHeader';
 import { ContactForm } from '../components/molecules/ContactForm';
 
@@ -7,14 +8,18 @@ export interface ContactPageProps {
 }
 
 export function ContactPage({ onSetNotice }: ContactPageProps) {
+  const { showAlert } = useAppContext();
+
   const handleContactSubmit = () => {
+    const noticePayload: Notice = {
+      message: '¡Gracias por contactarnos! Tu mensaje fue recibido y te responderemos a la brevedad.',
+      type: 'success',
+      title: 'Mensaje Enviado',
+    };
     if (onSetNotice) {
-      onSetNotice({
-        message: '¡Gracias por contactarnos! Tu mensaje fue recibido y te responderemos a la brevedad.',
-        type: 'success',
-      });
+      onSetNotice(noticePayload);
     } else {
-      alert('¡Gracias por contactarnos! Tu mensaje fue recibido.');
+      showAlert(noticePayload.message, noticePayload.type, noticePayload.title);
     }
   };
 

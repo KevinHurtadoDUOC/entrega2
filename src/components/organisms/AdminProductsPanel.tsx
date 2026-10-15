@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import type { Category, Product } from '../../types';
 import { getProducts, saveProducts, deleteProduct } from '../../lib/storage';
+import { useAppContext } from '../../lib/AppContext';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
 import { ProductRow } from '../molecules/ProductRow';
+import { AlertBanner } from '../molecules/AlertBanner';
 
 export interface AdminProductsPanelProps {
   products: Product[];
@@ -12,9 +14,11 @@ export interface AdminProductsPanelProps {
 }
 
 export function AdminProductsPanel({ products, categories, onRefresh }: AdminProductsPanelProps) {
+  const { showAlert } = useAppContext();
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const categoryNames = categories.map((c) => c.nombre);
 
@@ -30,31 +34,38 @@ export function AdminProductsPanel({ products, categories, onRefresh }: AdminPro
     const imagen = String(fd.get('imagen') ?? '').trim();
 
     if (!nombre) {
-      alert('El nombre del producto no puede estar vacío.');
+      setFormError('El nombre del producto no puede estar vacío.');
+      showAlert('El nombre del producto no puede estar vacío.', 'warning', 'Validación');
       return;
     }
     if (!categoria) {
-      alert('Debes seleccionar una categoría.');
+      setFormError('Debes seleccionar una categoría.');
+      showAlert('Debes seleccionar una categoría.', 'warning', 'Validación');
       return;
     }
     if (precio <= 0) {
-      alert('El precio debe ser mayor a cero.');
+      setFormError('El precio debe ser mayor a cero.');
+      showAlert('El precio debe ser mayor a cero.', 'warning', 'Validación');
       return;
     }
     if (precioOferta <= 0) {
-      alert('El precio oferta debe ser mayor a cero.');
+      setFormError('El precio oferta debe ser mayor a cero.');
+      showAlert('El precio oferta debe ser mayor a cero.', 'warning', 'Validación');
       return;
     }
     if (precioOferta > precio) {
-      alert('El precio oferta no puede ser mayor al precio normal.');
+      setFormError('El precio oferta no puede ser mayor al precio normal.');
+      showAlert('El precio oferta no puede ser mayor al precio normal.', 'warning', 'Validación');
       return;
     }
     if (stock < 0) {
-      alert('El stock no puede ser negativo.');
+      setFormError('El stock no puede ser negativo.');
+      showAlert('El stock no puede ser negativo.', 'warning', 'Validación');
       return;
     }
     if (!imagen) {
-      alert('La URL de la imagen del producto es obligatoria.');
+      setFormError('La URL de la imagen del producto es obligatoria.');
+      showAlert('La URL de la imagen del producto es obligatoria.', 'warning', 'Validación');
       return;
     }
 
@@ -63,28 +74,30 @@ export function AdminProductsPanel({ products, categories, onRefresh }: AdminPro
     all.push({ id, nombre, categoria, precio, precioOferta, stock, descripcion, imagen });
     saveProducts(all);
     setShowAdd(false);
+    setFormError(null);
+    showAlert(`Producto "${nombre}" agregado al inventario exitosamente.`, 'success', 'Producto Creado');
     onRefresh();
   };
 
   const handleSaveEdit = (id: string, data: Partial<Product>) => {
     if (!data.nombre?.trim()) {
-      alert('El nombre no puede estar vacío.');
+      showAlert('El nombre no puede estar vacío.', 'warning', 'Edición');
       return;
     }
     if (!data.categoria?.trim()) {
-      alert('La categoría no puede estar vacía.');
+      showAlert('La categoría no puede estar vacía.', 'warning', 'Edición');
       return;
     }
     if ((data.precio ?? 0) <= 0) {
-      alert('El precio debe ser mayor a cero.');
+      showAlert('El precio debe ser mayor a cero.', 'warning', 'Edición');
       return;
     }
     if ((data.precioOferta ?? 0) <= 0) {
-      alert('El precio oferta debe ser mayor a cero.');
+      showAlert('El precio oferta debe ser mayor a cero.', 'warning', 'Edición');
       return;
     }
     if ((data.precioOferta ?? 0) > (data.precio ?? 0)) {
-      alert('El precio oferta no puede ser mayor al precio normal.');
+      showAlert('El precio oferta no puede ser mayor al precio normal.', 'warning', 'Edición');
       return;
     }
 
@@ -94,12 +107,17 @@ export function AdminProductsPanel({ products, categories, onRefresh }: AdminPro
     all[idx] = { ...all[idx], ...data };
     saveProducts(all);
     setEditId(null);
+    showAlert(`Producto "${all[idx].nombre}" actualizado exitosamente.`, 'success', 'Cambios Guardados');
     onRefresh();
   };
 
   const handleDeleteProduct = (id: string) => {
+    const all = getProducts();
+    const target = all.find((p) => p.id === id);
+    const targetName = target ? target.nombre : 'Producto';
     deleteProduct(id);
     setDeleteConfirmId(null);
+    showAlert(`"${targetName}" ha sido eliminado del catálogo.`, 'info', 'Producto Eliminado');
     onRefresh();
   };
 
@@ -127,6 +145,14 @@ export function AdminProductsPanel({ products, categories, onRefresh }: AdminPro
         {showAdd && (
           <div className="p-4 bg-light border-bottom">
             <h6 className="fw-bold mb-3 text-dark">Nuevo Producto</h6>
+            {formError && (
+              <AlertBanner
+                variant="warning"
+                message={formError}
+                onClose={() => setFormError(null)}
+                className="mb-3"
+              />
+            )}
             <form onSubmit={handleAddProduct}>
               <div className="row g-3">
                 <div className="col-12 col-md-6">
