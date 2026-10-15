@@ -89,9 +89,19 @@ function App() {
     }
   }, [currentUser, location.pathname, navigate]);
 
-  const products = useMemo(() => getProducts(), []);
-  const categories = useMemo(() => getCategories(), []);
+  // Scroll to top on every route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location.pathname]);
+
+  const [products, setProducts] = useState(() => getProducts());
+  const [categories, setCategories] = useState(() => getCategories());
   const categoryOptions = useMemo(() => [...new Set(products.map((item) => item.categoria))], [products]);
+
+  const refreshCatalog = () => {
+    setProducts(getProducts());
+    setCategories(getCategories());
+  };
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
@@ -194,9 +204,57 @@ function App() {
       notice,
       setNotice,
       showAlert,
+      refreshCatalog,
     }),
     [currentUser, products, categories, notice]
   );
+
+  // --- Repartidor: interfaz aislada sin navegación del sitio público ---
+  if (currentUser?.role === 'repartidor') {
+    return (
+      <AppContext.Provider value={contextValue}>
+        <div className="d-flex flex-column min-vh-100 bg-light">
+          {/* Minimal header for repartidor */}
+          <header className="navbar bg-white shadow-sm sticky-top border-bottom py-2">
+            <div className="container d-flex justify-content-between align-items-center">
+              <div className="d-flex align-items-center gap-2">
+                <div
+                  className="rounded-3 bg-warning text-dark d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                  style={{ width: '42px', height: '42px' }}
+                >
+                  <i className="bi bi-truck fs-4 text-primary" />
+                </div>
+                <div>
+                  <span className="small text-muted d-block lh-1 text-uppercase" style={{ fontSize: '0.72rem' }}>
+                    Panel Repartidor
+                  </span>
+                  <strong className="text-dark fs-5 fw-extrabold lh-1">El Volcán</strong>
+                </div>
+              </div>
+              <div className="d-flex align-items-center gap-2">
+                <span className="badge bg-light text-dark border py-2 px-2">
+                  <i className="bi bi-person-fill text-muted me-1" />
+                  {currentUser.nombre} ({currentUser.role})
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+                  onClick={handleLogout}
+                >
+                  <i className="bi bi-box-arrow-right" />
+                  Salir
+                </button>
+              </div>
+            </div>
+          </header>
+          <main className="flex-grow-1">
+            <RepartidorDashboard currentUser={currentUser} />
+          </main>
+          <Notice notice={notice} onClose={() => setNotice(null)} />
+        </div>
+      </AppContext.Provider>
+    );
+  }
 
   return (
     <AppContext.Provider value={contextValue}>

@@ -8,6 +8,7 @@ export interface AppContextValue {
   notice: Notice | null;
   setNotice: (notice: Notice | null) => void;
   showAlert: (message: string, type?: NoticeType, title?: string) => void;
+  refreshCatalog: () => void;
 }
 
 export const AppContext = createContext<AppContextValue>({
@@ -17,6 +18,7 @@ export const AppContext = createContext<AppContextValue>({
   notice: null,
   setNotice: () => {},
   showAlert: () => {},
+  refreshCatalog: () => {},
 });
 
 export function useAppContext() {

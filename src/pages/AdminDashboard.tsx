@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { User } from '../types';
 import { getUsers, getProducts, getOrders, getCategories } from '../lib/storage';
+import { useAppContext } from '../lib/AppContext';
 import { SectionHeader } from '../components/atoms/SectionHeader';
 import { AdminUsersPanel } from '../components/organisms/AdminUsersPanel';
 import { AdminProductsPanel } from '../components/organisms/AdminProductsPanel';
@@ -16,6 +17,7 @@ export interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ currentUser }: AdminDashboardProps) {
+  const { refreshCatalog } = useAppContext();
   const [tab, setTab] = useState<AdminTab>('usuarios');
   const [users, setUsers] = useState(() => getUsers());
   const [products, setProducts] = useState(() => getProducts());
@@ -27,6 +29,7 @@ export function AdminDashboard({ currentUser }: AdminDashboardProps) {
     setProducts(getProducts());
     setOrders(getOrders());
     setCategories(getCategories());
+    refreshCatalog();
   };
 
   const tabs: Array<{ id: AdminTab; label: string; icon: string }> = [
